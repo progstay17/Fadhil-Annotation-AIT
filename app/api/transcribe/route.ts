@@ -5,22 +5,38 @@ import { createOpenAI } from "@ai-sdk/openai"
 import { calculateScoring } from "@/lib/scoring"
 
 const PROMPT_SYSTEM = `Kamu editor transkripsi audio. Lakukan DUA hal saja:
+1. Ganti setiap jeda suara ("\\" atau "\\\\") dengan tanda baca (. , ! atau ?) sesuai konteks dan prioritas aturan di bawah.
+2. Kapitalkan awal kalimat dan nama diri (orang, tempat, merek).
 
-1. Ganti setiap \\ dengan . , ! atau ? sesuai konteks
-2. Kapitalkan awal kalimat dan nama diri (orang, tempat, merek)
+PRIORITAS ATURAN (WAJIB DIPATUHI BERDASARKAN URUTAN PRIORITAS):
+
+PRIORITAS 1 — Tata bahasa & EYD (WAJIB dicek lebih dulu):
+Tentukan dulu apakah posisi jeda itu batas kalimat gramatikal yang lengkap (subjek-predikat-objek/ide selesai) atau cuma jeda di tengah klausa yang masih menyambung ke kalimat sebelumnya. Keputusan tanda baca HARUS mengikuti struktur gramatikal ini sebagai acuan utama.
+
+PRIORITAS 2 — Durasi jeda sebagai sinyal tambahan (dipakai kalau gramatikal ambigu):
+- "\\" (satu backslash, jeda pendek) → cenderung koma (,) kalau EYD tidak memberikan sinyal jelas.
+- "\\\\" (dua backslash, jeda panjang) → cenderung titik (.) kalau EYD tidak memberikan sinyal jelas.
+Durasi ini BUKAN aturan mutlak — kalau EYD jelas menunjukkan kalimat belum selesai meski jedanya panjang, tetap pakai koma. Sebaliknya kalau EYD jelas menunjukkan kalimat sudah selesai meski jedanya pendek, tetap pakai titik.
+
+PRIORITAS 3 — Tanda tanya/seru:
+Kalau konteks kalimat jelas menunjukkan pertanyaan atau seruan, override semua di atas and pakai (?) atau (!).
 
 LARANGAN:
-- Jangan ubah, tambah, atau hapus kata apapun
-- Jangan ubah ejaan kata — baku maupun tidak baku, biarkan apa adanya
-- Jangan sentuh tanda baca selain \\
-- Setiap \\ WAJIB diganti, tidak boleh dihapus atau dilewati
-- Jika ragu pilih titik (.)
+- Jangan ubah, tambah, atau hapus kata apapun.
+- Jangan ubah ejaan kata — baku maupun tidak baku, biarkan apa adanya.
+- Jangan sentuh tanda baca selain "\\" and "\\\\".
+- Setiap "\\" and "\\\\" WAJIB diganti, tidak boleh dihapus atau dilewati.
+- Jika ragu pilih titik (.) atau koma (,) sesuai struktur gramatikal.
 
 Output: teks hasil saja, tanpa komentar.
 
-Contoh:
-Input:  gue lagi di warung\\ mau beli nasi uduk\\ abis deh\\
-Output: Gue lagi di warung, mau beli nasi uduk. Abis deh.`
+Contoh 1 (Durasi & EYD Searah):
+Input:  kami baru sampai di stasiun\\\\ kereta sudah berangkat\\ kita telat\\
+Output: Kami baru sampai di stasiun. Kereta sudah berangkat, kita telat.
+
+Contoh 2 (Durasi & EYD Bertentangan - EYD Menang):
+Input:  meskipun hujan sangat lebat\\\\ kami tetap berangkat ke sekolah\\ hari ini sangat dingin\\
+Output: Meskipun hujan sangat lebat, kami tetap berangkat ke sekolah. Hari ini sangat dingin.`
 
 type Provider = "groq" | "google" | "aiml" | "openrouter"
 
@@ -91,7 +107,7 @@ export async function POST(request: Request) {
       model,
       system: systemPrompt || PROMPT_SYSTEM,
       prompt: text,
-      maxTokens: 1000,
+      maxOutputTokens: 1000,
       temperature: 0.1,
     })
 
