@@ -10,7 +10,7 @@ export const translations = {
     inputLabel: "input",
     inputHint: "gunakan",
     inputHintSuffix: "sebagai penanda jeda suara",
-    inputPlaceholder: "mbaknya bilang akun dananya kena freeze\\ lah gimana coba gue...",
+    inputPlaceholder: "mbaknya bilang akun dananya kena freeze\\\\ lah gimana coba gue\\",
     outputLabel: "hasil",
     outputPlaceholder: "hasil akan muncul di sini...",
     charCount: "karakter",
@@ -68,12 +68,12 @@ export const translations = {
 
     // Tutorial Popup
     tutorialTitle: "Cara pakai metode Backslash",
-    tutorialBody: "Mode ini menggunakan tanda \\ sebagai penanda jeda suara.\n\nKetik atau paste transkripsi, lalu tambahkan \\ di setiap posisi jeda — titik, koma, tanda tanya, atau seru akan ditentukan otomatis oleh AI.\n\nContoh:\nInput: gue lagi di warung\\ mau beli nasi uduk\\ abis deh\\\nOutput: Gue lagi di warung, mau beli nasi uduk. Abis deh.",
+    tutorialBody: "Mode ini menggunakan tanda \\ untuk jeda pendek dan \\\\ untuk jeda panjang.\n\nKetik atau paste transkripsi, lalu tambahkan \\ (jeda pendek) atau \\\\ (jeda panjang) di setiap posisi jeda. Penentuan tanda baca akan diproses otomatis oleh AI berdasarkan prioritas EYD dan durasi jeda.\n\nContoh:\nInput: gue lagi di warung\\\\ mau beli nasi uduk\\ abis deh\\\nOutput: Gue lagi di warung. Mau beli nasi uduk, abis deh.",
     tutorialButton: "Mengerti",
 
     tutorialModeBiasa: "Mode Biasa\nTombol Proses bekerja seperti AI pada umumnya, tanpa perlu prompt manual — lebih cepat digunakan.\n\nFlat Text:\nMenghapus kapitalisasi, tanda baca, dan simbol → menghasilkan teks polos (clean text)",
     tutorialModeV1: "Mode V1\nBasic annotation processing.\n\nFlat Text:\nMenghapus kapitalisasi, tanda baca, dan simbol → menghasilkan teks polos (clean text)",
-    tutorialModeV2: "Mode V2 — Rekomendasi untuk Annotator\n\n🎧 Audio:\n- Gunakan kecepatan 1x (normal)\n- Usahakan audio hanya didengarkan 1 kali\n- Fokus pada: perbaikan typing & penandaan jeda (\\)\n\n⚡ Workflow Cepat:\n- Setelah output keluar → langsung submit\n- Tidak perlu re-check ulang\n- Tujuan: maksimalkan kecepatan anotasi\n\n⚠️ Kondisi Khusus:\n- Jika output AI ditandai merah:\n  → lakukan pengecekan ulang\n  → gunakan kecepatan 2x (double speed)\n\n🧠 Intinya:\nDefault: speed over perfection\nException: kalau flagged → baru audit",
+    tutorialModeV2: "Mode V2 — Rekomendasi untuk Annotator\n\n🎧 Audio:\n- Gunakan kecepatan 1x (normal)\n- Usahakan audio hanya didengarkan 1 kali\n- Fokus pada: perbaikan typing & penandaan jeda (\\ atau \\\\)\n\n⚡ Workflow Cepat:\n- Setelah output keluar → langsung submit\n- Tidak perlu re-check ulang\n- Tujuan: maksimalkan kecepatan anotasi\n\n⚠️ Kondisi Khusus:\n- Jika output AI ditandai merah:\n  → lakukan pengecekan ulang\n  → gunakan kecepatan 2x (double speed)\n\n🧠 Intinya:\nDefault: speed over perfection\nException: kalau flagged → baru audit",
     tutorialFlatText: "Flat Text\nMenghapus semua format dari teks:\n- Kapitalisasi → dihilangkan\n- Tanda baca → dihapus\n- Simbol → dihapus\n\n→ Hasil: teks bersih tanpa formatting",
 
     v2BadgeProcessing: "memproses...",
@@ -116,7 +116,7 @@ export const translations = {
     inputLabel: "input",
     inputHint: "use",
     inputHintSuffix: "as pause marker",
-    inputPlaceholder: "she said the account got frozen\\ so what am I supposed to do now...",
+    inputPlaceholder: "she said the account got frozen\\\\ so what am I supposed to do now\\",
     outputLabel: "result",
     outputPlaceholder: "result will appear here...",
     charCount: "characters",
@@ -174,12 +174,12 @@ export const translations = {
 
     // Tutorial Popup
     tutorialTitle: "How to use the Backslash method",
-    tutorialBody: "This mode uses the \\ sign as a voice pause marker.\n\nType or paste the transcription, then add \\ at each pause position — periods, commas, question marks, or exclamation points will be automatically determined by the AI.\n\nExample:\nInput: i'm at the shop\\ want to buy breakfast\\ it's gone\\\nOutput: I'm at the shop, want to buy breakfast. It's gone.",
+    tutorialBody: "This mode uses the \\ sign for short pauses and \\\\ for long pauses.\n\nType or paste the transcription, then add \\ (short pause) or \\\\ (long pause) at each pause position — punctuation marks will be automatically determined by the AI based on grammar rules (EYD) and pause duration.\n\nExample:\nInput: i'm at the shop\\\\ want to buy breakfast\\ it's gone\\\nOutput: I'm at the shop. Want to buy breakfast, it's gone.",
     tutorialButton: "Understood",
 
     tutorialModeBiasa: "Normal Mode\nThe Process button works like standard AI, without needing manual prompts — faster to use.\n\nFlat Text:\nRemoves capitalization, punctuation, and symbols → produces plain text (clean text)",
     tutorialModeV1: "Mode V1\nBasic annotation processing.\n\nFlat Text:\nRemoves capitalization, punctuation, and symbols → produces plain text (clean text)",
-    tutorialModeV2: "Mode V2 — Recommended for Annotators\n\n🎧 Audio:\n- Use 1x speed (normal)\n- Try to listen to the audio only once\n- Focus on: fixing typing & marking pauses (\\)\n\n⚡ Fast Workflow:\n- After output appears → submit immediately\n- No need to re-check\n- Goal: maximize annotation speed\n\n⚠️ Special Conditions:\n- If AI output is flagged red:\n  → perform a re-check\n  → use 2x speed (double speed)\n\n🧠 Key Point:\nDefault: speed over perfection\nException: if flagged → then audit",
+    tutorialModeV2: "Mode V2 — Recommended for Annotators\n\n🎧 Audio:\n- Use 1x speed (normal)\n- Try to listen to the audio only once\n- Focus on: fixing typing & marking pauses (\\ or \\\\)\n\n⚡ Fast Workflow:\n- After output appears → submit immediately\n- No need to re-check\n- Goal: maximize annotation speed\n\n⚠️ Special Conditions:\n- If AI output is flagged red:\n  → perform a re-check\n  → use 2x speed (double speed)\n\n🧠 Key Point:\nDefault: speed over perfection\nException: if flagged → then audit",
     tutorialFlatText: "Flat Text\nRemoves all formatting from text:\n- Capitalization → removed\n- Punctuation → deleted\n- Symbols → deleted\n\n→ Result: clean text without formatting",
 
     v2BadgeProcessing: "processing...",
@@ -222,7 +222,7 @@ export const translations = {
     inputLabel: "输入",
     inputHint: "使用",
     inputHintSuffix: "作为停顿标记",
-    inputPlaceholder: "她说账户被冻结了\\ 那我现在该怎么办...",
+    inputPlaceholder: "她说账户被冻结了\\\\ 那我现在该怎么办\\",
     outputLabel: "结果",
     outputPlaceholder: "结果将显示在这里...",
     charCount: "字符",
@@ -280,12 +280,12 @@ export const translations = {
 
     // Tutorial Popup
     tutorialTitle: "如何使用反斜杠方法",
-    tutorialBody: "此模式使用 \\ 符号作为语音停顿标记。\n\n输入或粘贴转录内容，然后在每个停顿位置添加 \\ — 句号、逗号、问号或感叹号将由 AI 自动确定。\n\n示例：\n输入：我在店里\\ 想买早餐\\ 卖完了\\\n输出：我在店里，想买早餐。卖完了。",
+    tutorialBody: "此模式使用 \\ 符号表示短停顿，使用 \\\\ 表示长停顿。\n\n输入或粘贴转录内容，然后在每个停顿位置添加 \\（短停顿）或 \\\\（长停顿）。标点符号将由 AI 根据语法规范（EYD）和停顿时间自动确定。\n\n示例：\n输入：我在店里\\\\ 想买早餐\\ 卖完了\\\n输出：我在店里。想买早餐，卖完了。",
     tutorialButton: "明白了",
 
     tutorialModeBiasa: "普通模式\n“处理”按钮的工作方式与普通 AI 类似，无需手动输入提示词——使用更快捷。\n\n平展文本：\n删除大写、标点符号和符号 → 生成纯文本（清洗后的文本）",
     tutorialModeV1: "V1 模式\n基础标注处理。\n\n平展文本：\n删除大写、标点符号和符号 → 生成纯文本（清洗后的文本）",
-    tutorialModeV2: "V2 模式 — 标注员推荐\n\n🎧 音频：\n- 使用 1x 倍速（正常）\n- 尽量只听一遍音频\n- 重点关注：修正打字错误和标记停顿 (\\)\n\n⚡ 快速工作流：\n- 输出结果后 → 立即提交\n- 无需重新检查\n- 目标：最大化标注速度\n\n⚠️ 特殊情况：\n- 如果 AI 输出被标记为红色：\n  → 进行重新检查\n  → 使用 2x 倍速（双倍速）\n\n🧠 核心理念：\n默认：速度胜过完美\n例外：如果被标记 → 才进行审计",
+    tutorialModeV2: "V2 模式 — 标注员推荐\n\n🎧 音频：\n- 使用 1x 倍速（正常）\n- 尽量只听一遍音频\n- 重点关注：修正打字错误 and 标记停顿 (\\ 或 \\\\)\n\n⚡ 快速工作流：\n- 输出结果后 → 立即提交\n- 无需重新检查\n- 目标：最大化标注速度\n\n⚠️ 特殊情况：\n- 如果 AI 输出被标记为红色：\n  → 进行重新检查\n  → 使用 2x 倍速（双倍速）\n\n🧠 核心理念：\n默认：速度胜过完美\n例外：如果被标记 → 才进行审计",
     tutorialFlatText: "平展文本\n删除文本中的所有格式：\n- 大写 → 移除\n- 标点符号 → 删除\n- 符号 → 删除\n\n→ 结果：无格式的干净文本",
 
     v2BadgeProcessing: "处理中...",

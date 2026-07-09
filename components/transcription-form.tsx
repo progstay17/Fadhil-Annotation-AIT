@@ -28,40 +28,63 @@ type Provider = "groq" | "google" | "aiml" | "openrouter"
 const PROMPT_BIASA = `Perbaiki teks input. Semua output dalam satu paragraf.
 
 ATURAN:
-- Pertahankan gaya santai (gue, lu, nggak, dll) sesuai input
-- Tulis kata apa adanya — jangan ubah ke bentuk baku
-- Perbaiki typo, kapitalkan nama diri dan merek
-- Gabungkan kata ulang dengan hubung (pelan pelan → pelan-pelan)
-- Tambah atau ganti tanda baca sesuai EYD
-- Hapus dash (—), ganti dengan titik atau koma
-- Akhir kalimat hanya . ? !
-- Pertahankan kalimat menggantung jika ada di input
-
-Output: teks hasil saja, tanpa komentar.`
-
-const INSERT_PROMPT_TEMPLATE = PROMPT_BIASA
-
-const PROMPT_1 = `Kamu editor transkripsi audio. Lakukan DUA hal saja:
-1. Ganti setiap \\ dengan . , ! atau ? sesuai konteks
-2. Kapitalkan awal kalimat dan nama diri (orang, tempat, merek)
-
-LARANGAN:
-- Jangan ubah, tambah, atau hapus kata apapun
-- Jangan ubah ejaan kata — baku maupun tidak baku, biarkan apa adanya
-- Jangan sentuh tanda baca selain \\
-- Setiap \\ WAJIB diganti, tidak boleh dihapus atau dilewati
-- Jika ragu pilih titik (.)
+- Larangan eksplisit: Jangan tambah kata, kalimat, atau informasi baru yang tidak ada di input. Jangan hapus makna asli kalimat.
+- Pertahankan gaya santai (gue, lu, nggak, dll) sesuai input.
+- Tulis kata apa adanya — jangan ubah ke bentuk baku.
+- Perbaiki typo, kapitalkan nama diri dan merek.
+- Penulisan angka dan nama merek/brand asing: pertahankan penulisan asli, jangan diterjemahkan atau diformat ulang kecuali kapitalisasi nama diri.
+- Gabungkan kata ulang dengan hubung (pelan pelan → pelan-pelan).
+- Tambah atau ganti tanda baca sesuai EYD.
+- Hapus dash (—), ganti dengan titik atau koma.
+- Akhir kalimat hanya . ? !.
+- Pertahankan kalimat menggantung jika ada di input.
 
 Output: teks hasil saja, tanpa komentar.
 
 Contoh:
-Input:  gue lagi di warung\\ mau beli nasi uduk\\ abis deh\\
+Input:  gue lagi di warung mau beli nasi uduk abis deh
 Output: Gue lagi di warung, mau beli nasi uduk. Abis deh.`
 
-function getPrompt2(original: string, hasil: string, masalah: string[]) {
-  return `Kamu adalah asisten editor transkripsi. Tugasmu adalah memperbaiki hasil transkripsi sebelumnya yang memiliki kesalahan posisi tanda baca.
+const INSERT_PROMPT_TEMPLATE = PROMPT_BIASA
 
-Teks Asli (dengan penanda \\):
+const PROMPT_1 = `Kamu editor transkripsi audio. Lakukan DUA hal saja:
+1. Ganti setiap jeda suara ("\\" atau "\\\\") dengan tanda baca (. , ! atau ?) sesuai konteks dan prioritas aturan di bawah.
+2. Kapitalkan awal kalimat dan nama diri (orang, tempat, merek).
+
+PRIORITAS ATURAN (WAJIB DIPATUHI BERDASARKAN URUTAN PRIORITAS):
+
+PRIORITAS 1 — Tata bahasa & EYD (WAJIB dicek lebih dulu):
+Tentukan dulu apakah posisi jeda itu batas kalimat gramatikal yang lengkap (subjek-predikat-objek/ide selesai) atau cuma jeda di tengah klausa yang masih menyambung ke kalimat sebelumnya. Keputusan tanda baca HARUS mengikuti struktur gramatikal ini sebagai acuan utama.
+
+PRIORITAS 2 — Durasi jeda sebagai sinyal tambahan (dipakai kalau gramatikal ambigu):
+- "\\" (satu backslash, jeda pendek) → cenderung koma (,) kalau EYD tidak memberikan sinyal jelas.
+- "\\\\" (dua backslash, jeda panjang) → cenderung titik (.) kalau EYD tidak memberikan sinyal jelas.
+Durasi ini BUKAN aturan mutlak — kalau EYD jelas menunjukkan kalimat belum selesai meski jedanya panjang, tetap pakai koma. Sebaliknya kalau EYD jelas menunjukkan kalimat sudah selesai meski jedanya pendek, tetap pakai titik.
+
+PRIORITAS 3 — Tanda tanya/seru:
+Kalau konteks kalimat jelas menunjukkan pertanyaan atau seruan, override semua di atas and pakai (?) atau (!).
+
+LARANGAN:
+- Jangan ubah, tambah, atau hapus kata apapun.
+- Jangan ubah ejaan kata — baku maupun tidak baku, biarkan apa adanya.
+- Jangan sentuh tanda baca selain "\\" dan "\\\\".
+- Setiap "\\" dan "\\\\" WAJIB diganti, tidak boleh dihapus atau dilewati.
+- Jika ragu pilih titik (.) atau koma (,) sesuai struktur gramatikal.
+
+Output: teks hasil saja, tanpa komentar.
+
+Contoh 1 (Durasi & EYD Searah):
+Input:  kami baru sampai di stasiun\\\\ kereta sudah berangkat\\ kita telat\\
+Output: Kami baru sampai di stasiun. Kereta sudah berangkat, kita telat.
+
+Contoh 2 (Durasi & EYD Bertentangan - EYD Menang):
+Input:  meskipun hujan sangat lebat\\\\ kami tetap berangkat ke sekolah\\ hari ini sangat dingin\\
+Output: Meskipun hujan sangat lebat, kami tetap berangkat ke sekolah. Hari ini sangat dingin.`
+
+function getPrompt2(original: string, hasil: string, masalah: string[]) {
+  return `Kamu adalah asisten editor transkripsi. Tugasmu adalah memperbaiki hasil transkripsi sebelumnya yang memiliki kesalahan posisi tanda baca. Ikuti panduan prioritas aturan (EYD vs Durasi jeda) dengan teliti.
+
+Teks Asli (dengan penanda \\ dan \\\\):
 ${original}
 
 Hasil Saat Ini (salah):
@@ -81,10 +104,10 @@ function normalizeInput(text: string): string {
   // Fix dangling backslashes at start or multi-slashes
   return text
     .replace(/^\\+/, "")
-    .replace(/\\\\+/g, "\\")
-    .replace(/(\S)\\(\S)/g, "$1\\ $2")
-    .replace(/\s+\\(\S)/g, "\\ $1")
-    .replace(/\s+\\\\s+/g, "\\ ")
+    .replace(/\\{3,}/g, "\\\\")
+    .replace(/([^\\\s])(\\{1,2})([^\\\s])/g, "$1$2 $3")
+    .replace(/\s+(\\{1,2})([^\\\s])/g, "$1 $2")
+    .replace(/\s+(\\{1,2})\s+/g, " $1 ")
 }
 
 function stripExtraText(text: string): string {
@@ -108,7 +131,7 @@ function validator(input: string, output: string): { ok: boolean; masalah: strin
   const outputTokens = outputWords.map(w => w.replace(/[.,!?]$/, "").toLowerCase())
   let missingWords = false
   for (const inWordWithSlash of inputWords) {
-    const inWord = inWordWithSlash.replace(/\\$/, "").toLowerCase()
+    const inWord = inWordWithSlash.replace(/\\+$/, "").toLowerCase()
     if (inWord.length < 2) continue
 
     const hasMatch = outputTokens.some(outWord =>
@@ -123,12 +146,14 @@ function validator(input: string, output: string): { ok: boolean; masalah: strin
 
   const anchors: { word: string; pos: number }[] = []
   inputWords.forEach((word, index) => {
-    if (word.endsWith("\\")) {
+    if (word.endsWith("\\\\")) {
+      anchors.push({ word: word.slice(0, -2).toLowerCase(), pos: index })
+    } else if (word.endsWith("\\")) {
       anchors.push({ word: word.slice(0, -1).toLowerCase(), pos: index })
     }
   })
 
-  const slashCount = (input.match(/\\/g) || []).length
+  const slashCount = (input.match(/\\{1,2}/g) || []).length
   const punctuationRegex = /[.,!?]$/
 
   // Find words in output that carry punctuation
@@ -173,7 +198,9 @@ function algorithmicFixer(input: string, output: string): { result: string; chan
 
   const anchors: { word: string; pos: number }[] = []
   inputWords.forEach((word, index) => {
-    if (word.endsWith("\\")) {
+    if (word.endsWith("\\\\")) {
+      anchors.push({ word: word.slice(0, -2).toLowerCase(), pos: index })
+    } else if (word.endsWith("\\")) {
       anchors.push({ word: word.slice(0, -1).toLowerCase(), pos: index })
     }
   })
@@ -419,7 +446,7 @@ export function TranscriptionForm() {
     setResult("")
     setProcessTime(null)
     setShowFixerDiff(false)
-    const totalSlashes = (normalizedInputText.match(/\\/g) || []).length
+    const totalSlashes = (normalizedInputText.match(/\\{1,2}/g) || []).length
     setV2Status({
       state: "loading",
       retryCount: 0,
@@ -605,8 +632,14 @@ export function TranscriptionForm() {
         }
         hint={
           version !== "biasa" && (
-            <span>
-              {t("inputHint")} <Kbd>\</Kbd> {t("inputHintSuffix")}
+            <span className="flex items-center gap-1 flex-wrap">
+              {t("inputHint")}
+              <Kbd>\</Kbd>
+              <span className="text-[10px] text-muted-foreground mr-1">(pendek)</span>
+              <span>/</span>
+              <Kbd>\\</Kbd>
+              <span className="text-[10px] text-muted-foreground mr-1">(panjang)</span>
+              {t("inputHintSuffix")}
             </span>
           )
         }

@@ -53,21 +53,25 @@ export function calculateScoring(input: string, output: string): ScoringResult {
 
     if (inWord && !outWord) {
       // AI missing words
-      highlights.push({ text: inWord.replace("\\", "") + " ", type: "missing" })
+      highlights.push({ text: inWord.replace(/\\/g, "") + " ", type: "missing" })
       inIdx++
       continue
     }
 
-    // Check if inWord has a \\ marker
-    if (inWord.endsWith("\\")) {
-      const baseInWord = inWord.slice(0, -1).toLowerCase()
+    // Check if inWord has a \\ or \ marker
+    const hasDoubleSlash = inWord.endsWith("\\\\")
+    const hasSingleSlash = !hasDoubleSlash && inWord.endsWith("\\")
+
+    if (hasDoubleSlash || hasSingleSlash) {
+      const sliceLen = hasDoubleSlash ? -2 : -1
+      const baseInWord = inWord.slice(0, sliceLen).toLowerCase()
       const baseOutWord = outWord.replace(/[.,!?]$/, "").toLowerCase()
       const hasPunctuation = /[.,!?]$/.test(outWord)
 
       // It's a match if base words match (fuzzy 3-char) and punctuation is present
       const baseMatches = baseOutWord.startsWith(baseInWord.slice(0, 3)) || baseInWord.startsWith(baseOutWord.slice(0, 3))
 
-      totalOpportunities++ // The \\ marker is an opportunity
+      totalOpportunities++ // The backslash marker is an opportunity
 
       if (baseMatches && hasPunctuation) {
         highlights.push({ text: outWord + " ", type: "correct" })

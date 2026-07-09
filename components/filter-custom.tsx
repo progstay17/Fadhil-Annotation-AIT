@@ -214,10 +214,19 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
 
     // 9. Auto Fix Space (ALWAYS LAST)
     if (autoFixSpace) {
-      result = result
-        .replace(/[ \t]{2,}/g, ' ')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim()
+      const isCursorAtEnd = textareaRef.current ? (textareaRef.current.selectionEnd === text.length) : false
+      if (isCursorAtEnd) {
+        // Jangan trim() trailing whitespace di akhir jika kursor sedang aktif di sana
+        result = result
+          .replace(/[ \t]{2,}/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trimStart()
+      } else {
+        result = result
+          .replace(/[ \t]{2,}/g, ' ')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim()
+      }
     }
 
     return result
@@ -235,8 +244,24 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
 
     const processed = runEngine(input)
     if (processed !== input) {
+      // Save cursor position
+      const el = textareaRef.current
+      const start = el ? el.selectionStart : null
+      const end = el ? el.selectionEnd : null
+
       isInternalUpdate.current = true
       setInput(processed)
+
+      if (el && start !== null && end !== null) {
+        const offset = processed.length - input.length
+        const newStart = start === input.length ? processed.length : Math.max(0, Math.min(processed.length, start + offset))
+        const newEnd = end === input.length ? processed.length : Math.max(0, Math.min(processed.length, end + offset))
+
+        requestAnimationFrame(() => {
+          el.setSelectionRange(newStart, newEnd)
+        })
+      }
+
       // Debounced push history for typing
       const timer = setTimeout(() => {
         pushHistory(processed)
@@ -628,6 +653,14 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onBlur={() => {
+              if (autoFixSpace) {
+                const trimmed = input.trim()
+                if (trimmed !== input) {
+                  setInput(trimmed)
+                }
+              }
+            }}
             onClick={handleEditorClick}
             onMouseDown={handleEditorMouseDown}
             onMouseUp={handleEditorMouseUp}
