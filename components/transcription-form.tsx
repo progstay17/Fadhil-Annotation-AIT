@@ -25,7 +25,7 @@ import { HelpIcon } from "./ui/help-icon"
 import { protectKnownEntities, restoreKnownEntities, getKnownEntities, addKnownEntity, removeKnownEntity, exportKnownEntities, importKnownEntities, KnownEntity } from "@/lib/known-entities"
 import { Book, Trash2, Download, Upload, Plus } from "lucide-react"
 
-type Provider = "groq" | "google" | "aiml" | "openrouter"
+type Provider = "groq" | "google"
 
 const PROMPT_BIASA = `Perbaiki teks input. Semua output dalam satu paragraf.
 
@@ -842,8 +842,6 @@ export function TranscriptionForm() {
               className="font-mono text-xs bg-secondary text-foreground border border-border rounded-md px-2 py-1.5 outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="google">Google Gemini</option>
-              <option value="aiml">{t("modelAiml")}</option>
-              <option value="openrouter">{t("modelOpenRouter")}</option>
               <option value="groq">{t("modelGroq")}</option>
             </select>
           </div>
