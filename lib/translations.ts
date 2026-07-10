@@ -78,7 +78,6 @@ export const translations = {
 
     v2BadgeProcessing: "memproses...",
     v2BadgeValid: "✓ valid",
-    v2BadgeFixed_ai: "✓ difix AI",
     v2BadgeFixed_algo: "✓ difix otomatis",
     v2BadgeFixed_warning: "⚠ difix otomatis · cek kata",
     v2BadgeError: "✗ perlu review",
@@ -184,7 +183,6 @@ export const translations = {
 
     v2BadgeProcessing: "processing...",
     v2BadgeValid: "✓ valid",
-    v2BadgeFixed_ai: "✓ fixed (AI)",
     v2BadgeFixed_algo: "✓ fixed (algo)",
     v2BadgeFixed_warning: "⚠ fixed (algo) · check words",
     v2BadgeError: "✗ needs review",
@@ -290,7 +288,6 @@ export const translations = {
 
     v2BadgeProcessing: "处理中...",
     v2BadgeValid: "✓ 有效",
-    v2BadgeFixed_ai: "✓ AI 修复",
     v2BadgeFixed_algo: "✓ 自动修复",
     v2BadgeFixed_warning: "⚠ 自动修复 · 检查字数",
     v2BadgeError: "✗ 需要审核",

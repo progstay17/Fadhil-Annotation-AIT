@@ -27,6 +27,8 @@ LARANGAN:
 - Jangan sentuh tanda baca selain "\\" and "\\\\".
 - Setiap "\\" and "\\\\" WAJIB diganti, tidak boleh dihapus atau dilewati.
 - Jika ragu pilih titik (.) atau koma (,) sesuai struktur gramatikal.
+- Jangan ubah, hapus, atau terjemahkan token berbentuk __ENTITY_N__ (garis bawah + angka) — biarkan persis apa adanya, itu placeholder yang akan direstore otomatis.
+- Jangan pernah menggunakan tanda elipsis (...) dalam bentuk apapun — baik tiga titik berurutan (...) maupun karakter unicode elipsis tunggal (…). Setiap jeda atau kalimat yang belum selesai harus tetap diselesaikan menjadi kalimat gramatikal yang utuh, atau menggunakan tanda baca standar EYD (koma, titik, tanda tanya, tanda seru) sesuai konteks — bukan dipotong dengan elipsis.
 
 Output: teks hasil saja, tanpa komentar.
 
