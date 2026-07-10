@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/popover"
 import { TranslationKey } from "@/lib/translations"
 import { HelpIcon } from "./ui/help-icon"
+import { protectKnownEntities, restoreKnownEntities, getKnownEntities, addKnownEntity, removeKnownEntity, exportKnownEntities, importKnownEntities, KnownEntity } from "@/lib/known-entities"
+import { Book, Trash2, Download, Upload, Plus } from "lucide-react"
 
 type Provider = "groq" | "google" | "aiml" | "openrouter"
 
@@ -38,6 +40,8 @@ ATURAN:
 - Hapus dash (—), ganti dengan titik atau koma.
 - Akhir kalimat hanya . ? !.
 - Pertahankan kalimat menggantung jika ada di input.
+- Jangan ubah, hapus, atau terjemahkan token berbentuk __ENTITY_N__ (garis bawah + angka) — biarkan persis apa adanya, itu placeholder yang akan direstore otomatis.
+- Jangan pernah menggunakan tanda elipsis (...) dalam bentuk apapun — baik tiga titik berurutan (...) maupun karakter unicode elipsis tunggal (…). Setiap jeda atau kalimat yang belum selesai harus tetap diselesaikan menjadi kalimat gramatikal yang utuh, atau menggunakan tanda baca standar EYD (koma, titik, tanda tanya, tanda seru) sesuai konteks — bukan dipotong dengan elipsis.
 
 Output: teks hasil saja, tanpa komentar.
 
@@ -70,6 +74,8 @@ LARANGAN:
 - Jangan sentuh tanda baca selain "\\" dan "\\\\".
 - Setiap "\\" dan "\\\\" WAJIB diganti, tidak boleh dihapus atau dilewati.
 - Jika ragu pilih titik (.) atau koma (,) sesuai struktur gramatikal.
+- Jangan ubah, hapus, atau terjemahkan token berbentuk __ENTITY_N__ (garis bawah + angka) — biarkan persis apa adanya, itu placeholder yang akan direstore otomatis.
+- Jangan pernah menggunakan tanda elipsis (...) dalam bentuk apapun — baik tiga titik berurutan (...) maupun karakter unicode elipsis tunggal (…). Setiap jeda atau kalimat yang belum selesai harus tetap diselesaikan menjadi kalimat gramatikal yang utuh, atau menggunakan tanda baca standar EYD (koma, titik, tanda tanya, tanda seru) sesuai konteks — bukan dipotong dengan elipsis.
 
 Output: teks hasil saja, tanpa komentar.
 
@@ -81,21 +87,6 @@ Contoh 2 (Durasi & EYD Bertentangan - EYD Menang):
 Input:  meskipun hujan sangat lebat\\\\ kami tetap berangkat ke sekolah\\ hari ini sangat dingin\\
 Output: Meskipun hujan sangat lebat, kami tetap berangkat ke sekolah. Hari ini sangat dingin.`
 
-function getPrompt2(original: string, hasil: string, masalah: string[]) {
-  return `Kamu adalah asisten editor transkripsi. Tugasmu adalah memperbaiki hasil transkripsi sebelumnya yang memiliki kesalahan posisi tanda baca. Ikuti panduan prioritas aturan (EYD vs Durasi jeda) dengan teliti.
-
-Teks Asli (dengan penanda \\ dan \\\\):
-${original}
-
-Hasil Saat Ini (salah):
-${hasil}
-
-Masalah yang ditemukan:
-${masalah.map((m) => `- ${m}`).join("\n")}
-
-Tugas:
-Perbaiki HANYA posisi tanda baca yang salah tersebut. Jangan mengubah kata-kata, jangan menambah penjelasan, jangan memberikan komentar. Output harus berupa teks transkripsi yang sudah diperbaiki saja.`
-}
 
 function normalizeInput(text: string): string {
   // kata \kata selanjutnya  → kata\ kata selanjutnya
@@ -182,6 +173,11 @@ function validator(input: string, output: string): { ok: boolean; masalah: strin
     }
   })
 
+  // Ellipsis Check
+  if (output.includes("...") || output.includes("…")) {
+    masalah.push("output mengandung tanda baca elipsis (...) yang dilarang")
+  }
+
   return { ok: masalah.length === 0, masalah, missingWords }
 }
 
@@ -192,8 +188,20 @@ interface FixerChange {
 
 function algorithmicFixer(input: string, output: string): { result: string; changes: FixerChange[]; wordCountMismatch: boolean } {
   const changes: FixerChange[] = []
+
+  // Pre-clean ellipsis
+  let preCleanedOutput = output.replace(/\.\.\.|\u2026/g, ". ")
+  preCleanedOutput = preCleanedOutput
+    .replace(/\s+\./g, ".")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  if (output !== preCleanedOutput) {
+    changes.push({ original: "ellipsis (...)", fixed: "." })
+  }
+
   const inputWords = input.split(/\s+/).filter(w => w.length > 0)
-  const outputWords = output.split(/\s+/).filter(w => w.length > 0)
+  const outputWords = preCleanedOutput.split(/\s+/).filter(w => w.length > 0)
   const wordCountMismatch = inputWords.length !== outputWords.length
 
   const anchors: { word: string; pos: number }[] = []
@@ -353,7 +361,7 @@ export function TranscriptionForm() {
   })
   const [isProcessing, setIsProcessing] = useState(false)
   const [v2Status, setV2Status] = useState<{
-    state: "idle" | "loading" | "valid" | "fixed_ai" | "fixed_algo" | "fixed_warning" | "error"
+    state: "idle" | "loading" | "valid" | "fixed_algo" | "fixed_warning" | "error"
     retryCount: number
     masalah: string[]
     totalSlashes: number
@@ -373,6 +381,77 @@ export function TranscriptionForm() {
   const [showTutorial, setShowTutorial] = useState(false)
 
   const [batchEditWord, setBatchEditWord] = useState<string | null>(null)
+
+  // Dictionary UI state
+  const [showDictionaryModal, setShowDictionaryModal] = useState(false)
+  const [dictionaryEntities, setDictionaryEntities] = useState<KnownEntity[]>([])
+  const [newKey, setNewKey] = useState("")
+  const [newCanonical, setNewCanonical] = useState("")
+  const [showImportConfirm, setShowImportConfirm] = useState(false)
+  const [pendingImportJson, setPendingImportJson] = useState("")
+  const [importMessage, setImportMessage] = useState<{ text: string; type: "success" | "error" } | null>(null)
+
+  useEffect(() => {
+    if (showDictionaryModal) {
+      setDictionaryEntities(getKnownEntities())
+      setImportMessage(null)
+    }
+  }, [showDictionaryModal])
+
+  const handleAddEntity = () => {
+    if (!newKey.trim() || !newCanonical.trim()) return
+    const updated = addKnownEntity(newKey, newCanonical)
+    setDictionaryEntities(updated)
+    setNewKey("")
+    setNewCanonical("")
+  }
+
+  const handleRemoveEntity = (key: string) => {
+    const updated = removeKnownEntity(key)
+    setDictionaryEntities(updated)
+  }
+
+  const handleExport = () => {
+    exportKnownEntities()
+  }
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = event.target?.result as string
+      const existing = getKnownEntities()
+      if (existing.length === 0) {
+        // Direct import without confirmation
+        const res = importKnownEntities(content, "merge")
+        if (res.success) {
+          setDictionaryEntities(getKnownEntities())
+          setImportMessage({ text: `Berhasil import ${res.count} entry`, type: "success" })
+        } else {
+          setImportMessage({ text: res.error || "Gagal import file", type: "error" })
+        }
+      } else {
+        setPendingImportJson(content)
+        setShowImportConfirm(true)
+      }
+    }
+    reader.readAsText(file)
+    // Clear input so same file can be selected again
+    e.target.value = ""
+  }
+
+  const executeImport = (mode: "merge" | "replace") => {
+    const res = importKnownEntities(pendingImportJson, mode)
+    setShowImportConfirm(false)
+    setPendingImportJson("")
+    if (res.success) {
+      setDictionaryEntities(getKnownEntities())
+      setImportMessage({ text: `Berhasil import ${res.count} entry`, type: "success" })
+    } else {
+      setImportMessage({ text: res.error || "Gagal import file", type: "error" })
+    }
+  }
 
   useEffect(() => {
     const hasSeen = localStorage.getItem("tb_tutorial_seen")
@@ -441,6 +520,9 @@ export function TranscriptionForm() {
     const isBackslashMode = version === "v1" || version === "v2.2"
     const normalizedInputText = isBackslashMode ? normalizeInput(input.trim()) : input.trim()
 
+    // Task 6: Protect known entities
+    const { protectedText, entities: protectedEntities } = protectKnownEntities(normalizedInputText)
+
     setIsProcessing(true)
     setStatus({ state: "loading", messageKey: "statusProcessing" })
     setResult("")
@@ -469,7 +551,7 @@ export function TranscriptionForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: normalizedInputText,
+          text: protectedText,
           provider,
           systemPrompt: version === "biasa" ? PROMPT_BIASA : PROMPT_1
         }),
@@ -481,46 +563,20 @@ export function TranscriptionForm() {
       currentResult = stripExtraText(data.result)
 
       if (version === "v2.2") {
-        const validation = validator(normalizedInputText, currentResult)
+        const validation = validator(protectedText, currentResult)
         isValid = validation.ok
         currentMasalah = validation.masalah
         missingWords = !!validation.missingWords
 
-        // AI Retry Loop
-        while (!isValid && currentRetry < 1) {
-          currentRetry++
-          setV2Status(prev => ({ ...prev, retryCount: currentRetry, masalah: currentMasalah }))
-
-          const retryResponse = await fetch("/api/transcribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              text: currentResult,
-              provider,
-              systemPrompt: getPrompt2(normalizedInputText, currentResult, currentMasalah)
-            }),
-          })
-
-          const retryData = await retryResponse.json()
-          if (!retryResponse.ok) throw new Error(retryData.error || t("statusError"))
-
-          currentResult = stripExtraText(retryData.result)
-
-          const retryValidation = validator(normalizedInputText, currentResult)
-          isValid = retryValidation.ok
-          currentMasalah = retryValidation.masalah
-          missingWords = !!retryValidation.missingWords
-        }
-
-        let finalState: "valid" | "fixed_ai" | "fixed_algo" | "fixed_warning" = "valid"
+        let finalState: "valid" | "fixed_algo" | "fixed_warning" = "valid"
         let fixerChanges: FixerChange[] = []
         let wordCountMismatch = false
 
         if (isValid) {
-          finalState = currentRetry > 0 ? "fixed_ai" : "valid"
+          finalState = "valid"
         } else {
-          // STEP 4: ALGORITHMIC FIXER
-          const fixResult = algorithmicFixer(normalizedInputText, currentResult)
+          // STEP 4: ALGORITHMIC FIXER (no AI retry call, skip directly to fixer)
+          const fixResult = algorithmicFixer(protectedText, currentResult)
           currentResult = fixResult.result
           fixerChanges = fixResult.changes
           wordCountMismatch = fixResult.wordCountMismatch
@@ -529,7 +585,7 @@ export function TranscriptionForm() {
 
         setV2Status({
           state: finalState,
-          retryCount: currentRetry,
+          retryCount: 0,
           masalah: currentMasalah,
           totalSlashes,
           fixerChanges,
@@ -538,10 +594,13 @@ export function TranscriptionForm() {
         })
       }
 
-      const finalScoring = isBackslashMode ? calculateScoring(normalizedInputText, currentResult) : null
+      // Restore protected entities at the very end
+      const restoredResult = restoreKnownEntities(currentResult, protectedEntities)
+
+      const finalScoring = isBackslashMode ? calculateScoring(normalizedInputText, restoredResult) : null
       const elapsed = ((performance.now() - start) / 1000).toFixed(1)
       setProcessTime(elapsed)
-      setResult(currentResult)
+      setResult(restoredResult)
       setScoring(finalScoring)
       setStatus({ state: "success", messageKey: "statusDone" })
     } catch (error) {
@@ -788,6 +847,14 @@ export function TranscriptionForm() {
               <option value="groq">{t("modelGroq")}</option>
             </select>
           </div>
+        <button
+          onClick={() => setShowDictionaryModal(true)}
+          className="font-mono text-xs bg-secondary hover:bg-secondary/80 border border-border hover:border-muted-foreground px-2 py-1.5 rounded-md text-foreground flex items-center gap-1.5 transition-colors cursor-pointer"
+          title="Buka Dictionary"
+        >
+          <Book className="w-3.5 h-3.5 text-primary" />
+          <span>Dictionary</span>
+        </button>
           <button
             onClick={process}
             disabled={isProcessing}
@@ -843,11 +910,6 @@ export function TranscriptionForm() {
               {v2Status.state === "valid" && (
                 <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 font-bold">
                   {t("v2BadgeValid")} · {v2Status.totalSlashes}/{v2Status.totalSlashes}
-                </span>
-              )}
-              {v2Status.state === "fixed_ai" && (
-                <span className="px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/20 font-bold">
-                  {t("v2BadgeFixed_ai")}
                 </span>
               )}
               {v2Status.state === "fixed_algo" && (
@@ -930,11 +992,10 @@ export function TranscriptionForm() {
               <div className="flex items-center gap-2">
                 <span className="text-[10px] text-muted-foreground italic">
                   {isProcessing ? (
-                    <>{t("statusProcessing")} {version === "v2.2" && v2Status.retryCount > 0 && <span className="font-bold ml-1">retry {v2Status.retryCount}/1</span>}</>
+                    <>{t("statusProcessing")}</>
                   ) : version === "v2.2" && v2Status.state !== "idle" ? (
                     <>
                       {v2Status.state === "valid" && `selesai. semua ${v2Status.totalSlashes} tanda baca sesuai posisi.`}
-                      {v2Status.state === "fixed_ai" && `selesai setelah ${v2Status.retryCount}x fix otomatis.`}
                       {v2Status.state === "fixed_algo" && `selesai. algorithmic fixer digunakan.`}
                       {v2Status.state === "fixed_warning" && `selesai. algorithmic fixer digunakan dengan peringatan.`}
                       {v2Status.state === "error" && `perlu review manual: ${v2Status.masalah[0]}`}
@@ -1042,6 +1103,159 @@ export function TranscriptionForm() {
         )}
         <p>{t("footerPoweredBy")}</p>
       </footer>
+
+      {/* Known Entities Dictionary Dialog */}
+      <Dialog open={showDictionaryModal} onOpenChange={setShowDictionaryModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-primary flex items-center gap-2">
+              <Book className="w-5 h-5 text-primary" />
+              Kelola Dictionary (Brand/Tempat)
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Form Tambah Entry */}
+            <div className="flex flex-col gap-2 bg-secondary/30 p-3 rounded-lg border border-border">
+              <p className="font-mono text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tambah Entry Baru</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Kata asli (contoh: shopee)"
+                  value={newKey}
+                  onChange={(e) => setNewKey(e.target.value)}
+                  className="font-mono text-xs bg-card border border-border rounded px-3 py-2 outline-none focus:ring-1 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  placeholder="Bentuk benar (contoh: Shopee)"
+                  value={newCanonical}
+                  onChange={(e) => setNewCanonical(e.target.value)}
+                  className="font-mono text-xs bg-card border border-border rounded px-3 py-2 outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <button
+                onClick={handleAddEntity}
+                disabled={!newKey.trim() || !newCanonical.trim()}
+                className="font-mono text-xs font-bold uppercase bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 px-4 py-2 rounded flex items-center justify-center gap-1 transition-all cursor-pointer mt-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah
+              </button>
+            </div>
+
+            {/* List Entry */}
+            <div className="border border-border rounded-lg overflow-hidden flex flex-col">
+              <p className="font-mono text-[10px] font-bold text-muted-foreground uppercase tracking-wider bg-secondary/50 px-3 py-2 border-b border-border">List Entry ({dictionaryEntities.length})</p>
+              <div className="max-h-48 overflow-y-auto divide-y divide-border/60 scrollbar-thin">
+                {dictionaryEntities.length === 0 ? (
+                  <p className="font-mono text-xs text-muted-foreground italic text-center py-6">Belum ada entry dictionary.</p>
+                ) : (
+                  dictionaryEntities.map((entity) => (
+                    <div key={entity.key} className="flex items-center justify-between px-3 py-2 bg-card hover:bg-secondary/10 transition-colors">
+                      <div className="flex items-center gap-2 font-mono text-xs">
+                        <span className="text-muted-foreground line-through decoration-muted-foreground/30">{entity.key}</span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="font-bold text-foreground">{entity.canonical}</span>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveEntity(entity.key)}
+                        className="text-red-500 hover:text-red-600 p-1 hover:bg-red-50 dark:hover:bg-red-950/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Export / Import */}
+            <div className="flex items-center justify-between gap-4 border-t border-border pt-3">
+              <button
+                onClick={handleExport}
+                className="font-mono text-xs font-bold uppercase bg-secondary text-foreground hover:bg-secondary/80 border border-border px-3 py-2 rounded flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export JSON
+              </button>
+
+              <label className="font-mono text-xs font-bold uppercase bg-secondary text-foreground hover:bg-secondary/80 border border-border px-3 py-2 rounded flex items-center gap-1.5 transition-all cursor-pointer">
+                <Upload className="w-3.5 h-3.5" />
+                Import JSON
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportFileChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Import Status Message */}
+            {importMessage && (
+              <p className={`font-mono text-xs text-center font-bold p-2 rounded ${
+                importMessage.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"
+              }`}>
+                {importMessage.text}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter>
+            <button
+              onClick={() => setShowDictionaryModal(false)}
+              className="w-full font-mono text-xs font-bold uppercase bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2.5 rounded border border-border transition-all cursor-pointer"
+            >
+              Tutup
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog for Merge vs Replace */}
+      <Dialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-mono text-primary">Konfirmasi Import Dictionary</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <p className="font-mono text-xs text-foreground leading-relaxed">
+              Ditemukan data dictionary yang sudah ada di browser ini. Pilih bagaimana Anda ingin memasukkan file dictionary yang baru:
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <div className="p-2.5 bg-blue-500/5 border border-blue-500/10 rounded">
+                <p className="font-mono text-xs font-bold text-blue-600">Gabung (Merge)</p>
+                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">Menambahkan entry baru dan memperbarui kata asli yang sama tanpa menghapus entry yang sudah ada.</p>
+              </div>
+              <div className="p-2.5 bg-red-500/5 border border-red-500/10 rounded">
+                <p className="font-mono text-xs font-bold text-red-600">Timpa Semua (Replace)</p>
+                <p className="font-mono text-[10px] text-muted-foreground mt-0.5">MENGHAPUS seluruh entry dictionary saat ini dan menggantinya dengan yang ada di file.</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex flex-row items-center gap-2 justify-end">
+            <button
+              onClick={() => setShowImportConfirm(false)}
+              className="font-mono text-xs font-bold uppercase bg-secondary text-foreground hover:bg-secondary/80 px-4 py-2 rounded border border-border transition-all cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              onClick={() => executeImport("merge")}
+              className="font-mono text-xs font-bold uppercase bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded transition-all cursor-pointer"
+            >
+              Gabung (Merge)
+            </button>
+            <button
+              onClick={() => executeImport("replace")}
+              className="font-mono text-xs font-bold uppercase bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded transition-all cursor-pointer"
+            >
+              Timpa (Replace)
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
         <DialogContent className="max-w-md">
