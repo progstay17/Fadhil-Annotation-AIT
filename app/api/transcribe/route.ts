@@ -1,7 +1,6 @@
 import { generateText } from "ai"
 import { createGroq } from "@ai-sdk/groq"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { createOpenAI } from "@ai-sdk/openai"
 import { calculateScoring } from "@/lib/scoring"
 
 const PROMPT_SYSTEM = `Kamu editor transkripsi audio. Lakukan DUA hal saja:
@@ -40,13 +39,11 @@ Contoh 2 (Durasi & EYD Bertentangan - EYD Menang):
 Input:  meskipun hujan sangat lebat\\\\ kami tetap berangkat ke sekolah\\ hari ini sangat dingin\\
 Output: Meskipun hujan sangat lebat, kami tetap berangkat ke sekolah. Hari ini sangat dingin.`
 
-type Provider = "groq" | "google" | "aiml" | "openrouter"
+type Provider = "groq" | "google"
 
 const MODELS = {
   groq: "llama-3.3-70b-versatile",
-  google: "gemini-2.5-flash-lite",
-  aiml: "google/gemma-3n-e4b-it",
-  openrouter: "meta-llama/llama-3.3-70b-instruct:free",
+  google: "gemini-flash-lite-latest",
 } as const
 
 export async function POST(request: Request) {
@@ -64,62 +61,121 @@ export async function POST(request: Request) {
       )
     }
 
-    // Initialize provider and model based on request
-    let model;
-
+    // Process based on provider
     if (provider === "google") {
-      const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-
-      if (!apiKey || apiKey.includes("your_") || apiKey.includes("_here")) {
-        return Response.json({ error: "Gemini API Key (GEMINI_API_KEY) belum dikonfigurasi." }, { status: 500 });
+      // 1. Parse GEMINI_API_KEYS
+      let keys: string[] = [];
+      const multiKeys = process.env.GEMINI_API_KEYS;
+      if (multiKeys) {
+        keys = multiKeys
+          .split(",")
+          .map((k) => k.trim())
+          .filter((k) => k.length > 0);
       }
 
-      const google = createGoogleGenerativeAI({ apiKey });
-      model = google(MODELS.google);
-    } else if (provider === "aiml") {
-      const apiKey = process.env.AIML_API_KEY;
-      if (!apiKey || apiKey.includes("your_") || apiKey.includes("_here")) {
-        return Response.json({ error: "AIML API Key belum dikonfigurasi." }, { status: 500 });
+      // Fallback to single-key
+      if (keys.length === 0) {
+        const singleKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        if (singleKey && !singleKey.includes("your_") && !singleKey.includes("_here")) {
+          keys = [singleKey.trim()];
+        }
       }
-      const aiml = createOpenAI({
-        apiKey,
-        baseURL: "https://api.aimlapi.com/v1",
-      });
-      model = aiml(MODELS.aiml);
-    } else if (provider === "openrouter") {
-      const apiKey = process.env.OPENROUTER_API_KEY;
-      if (!apiKey || apiKey.includes("your_") || apiKey.includes("_here")) {
-        return Response.json({ error: "OpenRouter API Key belum dikonfigurasi." }, { status: 500 });
+
+      // 2. If completely empty, return error
+      if (keys.length === 0) {
+        return Response.json(
+          { error: "Gemini API Key (GEMINI_API_KEY) belum dikonfigurasi." },
+          { status: 500 }
+        );
       }
-      const openrouter = createOpenAI({
-        apiKey,
-        baseURL: "https://openrouter.ai/api/v1",
+
+      // 3. Choose starting index randomly
+      const startIndex = Math.floor(Math.random() * keys.length);
+      const errors: string[] = [];
+      let finalResult = "";
+      let success = false;
+
+      // 4. Try keys starting from the random index
+      for (let i = 0; i < keys.length; i++) {
+        const currentIndex = (startIndex + i) % keys.length;
+        const currentKey = keys[currentIndex];
+
+        try {
+          const google = createGoogleGenerativeAI({ apiKey: currentKey });
+          const model = google(MODELS.google);
+
+          const { text: result } = await generateText({
+            model,
+            system: systemPrompt || PROMPT_SYSTEM,
+            prompt: text,
+            maxOutputTokens: 1000,
+            temperature: 0.1,
+          });
+
+          finalResult = result;
+          success = true;
+          break; // Stop loop on success
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : "Terjadi kesalahan";
+          errors.push(errMsg);
+        }
+      }
+
+      // 5. If all keys failed, handle errors
+      if (!success) {
+        const lastErrorMsg = errors[errors.length - 1] || "Semua Gemini API Key gagal dicoba";
+
+        // Check if any error in the loop matches rate limit keyword
+        const isAnyRateLimit = errors.some(
+          (err) => err.toLowerCase().includes("rate limit") || err.includes("429")
+        );
+
+        if (isAnyRateLimit) {
+          return Response.json(
+            {
+              error: "Rate limit tercapai. Coba ganti model atau tunggu beberapa menit.",
+              isRateLimit: true,
+            },
+            { status: 429 }
+          );
+        }
+
+        return Response.json({ error: lastErrorMsg }, { status: 500 });
+      }
+
+      const trimmedResult = finalResult.trim() || "(tidak ada hasil)";
+      const scoring = calculateScoring(text, trimmedResult);
+
+      return Response.json({
+        result: trimmedResult,
+        scoring,
       });
-      model = openrouter(MODELS.openrouter);
+
     } else {
+      // Groq implementation
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey || apiKey.includes("your_") || apiKey.includes("_here")) {
         return Response.json({ error: "Groq API Key belum dikonfigurasi." }, { status: 500 });
       }
       const groq = createGroq({ apiKey });
-      model = groq(MODELS.groq);
+      const model = groq(MODELS.groq);
+
+      const { text: result } = await generateText({
+        model,
+        system: systemPrompt || PROMPT_SYSTEM,
+        prompt: text,
+        maxOutputTokens: 1000,
+        temperature: 0.1,
+      });
+
+      const trimmedResult = result.trim() || "(tidak ada hasil)";
+      const scoring = calculateScoring(text, trimmedResult);
+
+      return Response.json({
+        result: trimmedResult,
+        scoring,
+      });
     }
-
-    const { text: result } = await generateText({
-      model,
-      system: systemPrompt || PROMPT_SYSTEM,
-      prompt: text,
-      maxOutputTokens: 1000,
-      temperature: 0.1,
-    })
-
-    const trimmedResult = result.trim() || "(tidak ada hasil)"
-    const scoring = calculateScoring(text, trimmedResult)
-
-    return Response.json({
-      result: trimmedResult,
-      scoring
-    })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Terjadi kesalahan"
     
