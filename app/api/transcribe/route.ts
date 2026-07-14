@@ -1,7 +1,6 @@
 import { generateText } from "ai"
 import { createGroq } from "@ai-sdk/groq"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { calculateScoring } from "@/lib/scoring"
 
 const PROMPT_SYSTEM = `Kamu editor transkripsi audio. Lakukan DUA hal saja:
 1. Ganti setiap jeda suara ("\\" atau "\\\\") dengan tanda baca (. , ! atau ?) sesuai konteks dan prioritas aturan di bawah.
@@ -144,11 +143,9 @@ export async function POST(request: Request) {
       }
 
       const trimmedResult = finalResult.trim() || "(tidak ada hasil)";
-      const scoring = calculateScoring(text, trimmedResult);
 
       return Response.json({
         result: trimmedResult,
-        scoring,
       });
 
     } else {
@@ -169,11 +166,9 @@ export async function POST(request: Request) {
       });
 
       const trimmedResult = result.trim() || "(tidak ada hasil)";
-      const scoring = calculateScoring(text, trimmedResult);
 
       return Response.json({
         result: trimmedResult,
-        scoring,
       });
     }
   } catch (error) {

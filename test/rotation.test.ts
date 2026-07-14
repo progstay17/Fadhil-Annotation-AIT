@@ -40,8 +40,8 @@ require.cache[aiSdkPath] = {
   exports: mockAiSdk
 } as any;
 
-// Now import route.ts
-import { POST } from "../app/api/transcribe/route";
+// Now require route.ts dynamically to prevent import hoisting
+const { POST } = require("../app/api/transcribe/route");
 
 const originalEnv = { ...process.env };
 
@@ -115,6 +115,7 @@ async function startTests() {
     const data = await response.json();
 
     if (response.status !== 200) {
+      console.error("Single-key fallback failed with body:", data);
       throw new Error(`Expected 200 status, got ${response.status}`);
     }
     if (generateTextCallCount !== 1) {

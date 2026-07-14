@@ -5,7 +5,7 @@ import { TranscriptionCard } from "./transcription-card"
 import { FilterCustom } from "./filter-custom"
 import { StatusIndicator, StatusState } from "./status-indicator"
 import { calculateScoring, ScoringResult } from "@/lib/scoring"
-import { protectAcronyms, restoreAcronyms } from "@/lib/text-utils"
+import { protectAcronyms, restoreAcronyms, formatPreservingReplace } from "@/lib/text-utils"
 import { Kbd } from "@/components/ui/kbd"
 import { useLanguage } from "./language-provider"
 import {
@@ -31,7 +31,7 @@ const PROMPT_BIASA = `Perbaiki teks input. Semua output dalam satu paragraf.
 
 ATURAN:
 - Larangan eksplisit: Jangan tambah kata, kalimat, atau informasi baru yang tidak ada di input. Jangan hapus makna asli kalimat.
-- Pertahankan gaya santai (gue, lu, nggak, dll) sesuai input.
+- Kata ganti orang dan partikel (aku/gue/saya, kamu/lu/anda, nggak/gak/enggak/tidak, dia/doi, dll) WAJIB dipertahankan PERSIS seperti di input. JANGAN diganti ke sinonim lain walau maknanya sama (contoh salah: mengubah "aku" jadi "gue", atau "nggak" jadi "tidak"). Ini bukan kesalahan yang perlu dibetulkan.
 - Tulis kata apa adanya — jangan ubah ke bentuk baku.
 - Perbaiki typo, kapitalkan nama diri dan merek.
 - Penulisan angka dan nama merek/brand asing: pertahankan penulisan asli, jangan diterjemahkan atau diformat ulang kecuali kapitalisasi nama diri.
@@ -47,7 +47,11 @@ Output: teks hasil saja, tanpa komentar.
 
 Contoh:
 Input:  gue lagi di warung mau beli nasi uduk abis deh
-Output: Gue lagi di warung, mau beli nasi uduk. Abis deh.`
+Output: Gue lagi di warung, mau beli nasi uduk. Abis deh.
+
+Contoh 2 (kata ganti tidak boleh diubah):
+Input:  aku tadi udah bilang sih k dia
+Output: Aku tadi udah bilang, sih, ke dia.`
 
 const INSERT_PROMPT_TEMPLATE = PROMPT_BIASA
 
@@ -281,6 +285,33 @@ function algorithmicFixer(input: string, output: string): { result: string; chan
     if (original !== word) {
       finalWordsArray[i] = word
       changes.push({ original, fixed: word })
+    }
+  }
+
+  // Rule 2: Enforce word preservation for non-anchor words (Task 12)
+  // Only applicable when word counts match 1:1 (positions are aligned)
+  if (!wordCountMismatch) {
+    for (let i = 0; i < finalWordsArray.length; i++) {
+      // Skip if this index represents an anchor in output
+      if (anchorIndicesInOutput.has(i)) {
+        continue
+      }
+
+      const inputWordWithSlash = inputWords[i]
+      const outputWord = finalWordsArray[i]
+
+      // Strip ALL trailing backslashes at the end first, then trailing punctuation from input
+      const cleanInput = inputWordWithSlash.replace(/\\+$/, "").replace(/[.,!?]+$/, "").toLowerCase()
+      // Strip trailing punctuation from output word
+      const cleanOutput = outputWord.replace(/[.,!?]+$/, "").toLowerCase()
+
+      // If they are not an exact match, restore the original input word but preserve capitalisation
+      if (cleanInput !== cleanOutput) {
+        const inputWordCleaned = inputWordWithSlash.replace(/\\+$/, "")
+        const restoredWord = formatPreservingReplace(outputWord, inputWordCleaned)
+        finalWordsArray[i] = restoredWord
+        changes.push({ original: outputWord, fixed: restoredWord })
+      }
     }
   }
 
