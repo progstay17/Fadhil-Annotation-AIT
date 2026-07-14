@@ -1,18 +1,152 @@
 
-> my-project@0.1.0 dev
+> my-project@0.1.0 dev /app
 > next dev
 
 ▲ Next.js 16.2.0 (Turbopack)
 - Local:         http://localhost:3000
 - Network:       http://192.168.0.2:3000
-✓ Ready in 584ms
-Attention: Next.js now collects completely anonymous telemetry regarding usage.
-This information is used to shape Next.js' roadmap and prioritize features.
-You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
-https://nextjs.org/telemetry
-
+✓ Ready in 558ms
 
 ○ Compiling / ...
- GET / 200 in 6.8s (next.js: 6.2s, application-code: 610ms)
-[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+ GET / 200 in 5.4s (next.js: 4.6s, application-code: 725ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+      <SegmentViewNode type="page" pagePath="page.tsx">
+        <SegmentTrieNode>
+        <ClientPageRoot Component={function Home} serverProvidedParams={{...}}>
+          <Home params={Promise} searchParams={Promise}>
+            <main className="min-h-scre...">
+              <header>
+              <TranscriptionForm>
+                <div className="w-full max...">
+                  <TranscriptionCard>
+                  <div className="flex flex-...">
+                    <div>
+                    <div className="hidden">
+                      <FilterCustom input="" setInput={function bound dispatchSetState} ...>
+                        <div className="flex flex-...">
+                          <div>
+                          <div className="bg-card bo...">
+                            <div className="relative m...">
+                              <textarea
+                                ref={{current:null}}
+                                value=""
+                                onChange={function onChange}
+                                onBlur={function onBlur}
+                                onClick={function handleEditorClick}
+                                onMouseDown={function handleEditorMouseDown}
+                                onMouseUp={function handleEditorMouseUp}
+                                onTouchStart={function handleEditorTouchStart}
+                                onTouchMove={function handleEditorTouchMove}
+                                onTouchEnd={function handleEditorTouchEnd}
+                                placeholder="mbaknya bilang akun dananya kena freeze\\ lah gimana coba gue\"
+                                className="w-full h-full min-h-[300px] p-6 bg-transparent border-none outline-none fon..."
+-                               style={{caret-color:"transparent"}}
+                              >
+                            ...
+                          <div className="grid grid-...">
+                            <div className="flex flex-...">
+                              <div className="flex flex-...">
+                                <label>
+                                <input
+                                  type="text"
+                                  value=""
+                                  onChange={function onChange}
+                                  className="w-full bg-card border border-border rounded-lg px-4 py-2.5 font-mono text..."
+                                  placeholder=". , ! a b kata"
+-                                 style={{caret-color:"transparent"}}
+                                >
+                              <div className="flex flex-...">
+                                <label>
+                                <input
+                                  type="text"
+                                  value=""
+                                  onChange={function onChange}
+                                  className="w-full bg-card border border-border rounded-lg px-4 py-2.5 font-mono text..."
+                                  placeholder="Ganti dengan..."
+-                                 style={{caret-color:"transparent"}}
+                                >
+                              ...
+                            <div className="flex flex-...">
+                              <div className="grid grid-...">
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                                <label className="flex items...">
+                                  <input
+                                    type="checkbox"
+                                    checked={false}
+                                    onChange={function onChange}
+                                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+-                                   style={{caret-color:"transparent"}}
+                                  >
+                                  ...
+                              ...
+                          ...
+                    ...
+                  ...
+              ...
+      ...

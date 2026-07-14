@@ -34,20 +34,7 @@ function isSimilar(wA: string, wB: string): boolean {
   const cleanB = wB.replace(/[.,!?]+$/, "").toLowerCase()
 
   // Exact comparison
-  if (cleanA === cleanB) {
-    return true
-  }
-
-  // Fuzzy match fallback: 3-character prefix and max length difference of 2
-  if (cleanA.length >= 3 && cleanB.length >= 3) {
-    const prefixMatch = cleanA.slice(0, 3) === cleanB.slice(0, 3)
-    const lenDiff = Math.abs(cleanA.length - cleanB.length) <= 2
-    if (prefixMatch && lenDiff) {
-      return true
-    }
-  }
-
-  return false
+  return cleanA === cleanB
 }
 
 /**

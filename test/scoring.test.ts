@@ -89,6 +89,26 @@ function runTests() {
   })
   console.log("✓ Test Case 5 (Ellipsis cleanup) passed.")
 
+  // Test Case 6: Exact Match verification (Task 11 Regression tests)
+  // These word pairs share a 3-character prefix but have different meanings/endings.
+  // "dia" vs "diam", "kali" vs "kalau", "beli" vs "belum".
+  // Because they are different words, they should NOT match (score must be < 100%).
+
+  const testPairs = [
+    { input: "dia", output: "diam" },
+    { input: "kali", output: "kalau" },
+    { input: "beli", output: "belum" }
+  ]
+
+  testPairs.forEach(({ input, output }) => {
+    const res = calculateScoring(input, output)
+    console.log(`Test Case 6 (Exact match regression) for "${input}" vs "${output}":`, res)
+    if (res.score === 100) {
+      throw new Error(`Test Case 6 failed! Word "${input}" should NOT match "${output}" under exact-match scoring logic!`)
+    }
+  })
+  console.log("✓ Test Case 6 (Exact match regression for short words) passed.")
+
   console.log("All scoring and LCS tests passed successfully!")
 }
 
