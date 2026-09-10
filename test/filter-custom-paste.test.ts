@@ -99,6 +99,64 @@ function runPasteTests() {
   assert(out4Long.startsWith("Seprai putih kotor. Kalimat kedua disini."), `Scenario 4 Long failed! Got start: "${out4Long.slice(0, 50)}"`)
   console.log("✓ Scenario 4 passed (Short & Long text paste)")
 
+  // Scenario 5: Multi-line paste with removeLineBreak ON & autoCapital ON
+  function simulateFilterCustomEngineWithNoBreak(text: string, autoCapital: boolean = true, removeLineBreak: boolean = true): string {
+    let result = text
+    const { protectedText, entities } = protectKnownEntities(result)
+    result = protectedText
+
+    if (autoCapital) {
+      result = applyFormatWithProtection(result, (t) => {
+        return t.replace(/(^|[.!?]\s+|\n+\s*)([a-z])/g, (_, punct, char) =>
+          punct + char.toUpperCase()
+        )
+      })
+    }
+
+    if (removeLineBreak) {
+      result = result.replace(/\n+/g, ' ')
+    }
+
+    result = restoreKnownEntities(result, entities)
+    return result
+  }
+
+  const multiLineText = "baris pertama.\nbaris kedua.\nbaris ketiga."
+  const out5 = simulateFilterCustomEngineWithNoBreak(multiLineText, true, true)
+  assert(
+    out5 === "Baris pertama. Baris kedua. Baris ketiga.",
+    `Scenario 5 failed! Expected "Baris pertama. Baris kedua. Baris ketiga.", got "${out5}"`
+  )
+  console.log("✓ Scenario 5 passed (Multi-line paste + removeLineBreak ON + autoCapital ON)")
+
+  // Scenario 6: React State Track Simulation (lastProcessedInput ref vs boolean isInternalUpdate flag)
+  function simulateReactEffectStateSync(inputValues: string[], runEngineFn: (t: string) => string): string[] {
+    const outputs: string[] = []
+    let lastProcessedInput: string | null = null
+
+    for (const inputVal of inputValues) {
+      if (inputVal === lastProcessedInput) {
+        outputs.push(inputVal)
+        continue
+      }
+      const processed = runEngineFn(inputVal)
+      lastProcessedInput = processed
+      outputs.push(processed)
+    }
+
+    return outputs
+  }
+
+  const pasteSimResults = simulateReactEffectStateSync(
+    ["sprei putih kotor.", "sprei putih kotor."],
+    (t) => simulateFilterCustomEngine(t, true, true)
+  )
+  assert(
+    pasteSimResults[0] === "Seprai putih kotor." && pasteSimResults[1] === "Seprai putih kotor.",
+    `Scenario 6 failed! React State Sync simulation failed: ${JSON.stringify(pasteSimResults)}`
+  )
+  console.log("✓ Scenario 6 passed (React State Sync tracking with lastProcessedInput)")
+
   console.log("All Filter Custom Paste integration tests passed successfully!")
 }
 

@@ -243,23 +243,15 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
   }, [findValue, replaceValue, smartReplaceMode, stripEnabled, removeLineBreak, formatMode, autoCapital, autoSentence, autoLowercase, autoFixSpace])
 
   // Live Auto-apply
-  const lastInput = useRef(input)
-  const isInternalUpdate = useRef(false)
-
   useEffect(() => {
-    if (isInternalUpdate.current) {
-      isInternalUpdate.current = false
-      return
-    }
-
     const processed = runEngine(input)
+
     if (processed !== input) {
       // Save cursor position
       const el = textareaRef.current
       const start = el ? el.selectionStart : null
       const end = el ? el.selectionEnd : null
 
-      isInternalUpdate.current = true
       setInput(processed)
 
       if (el && start !== null && end !== null) {
