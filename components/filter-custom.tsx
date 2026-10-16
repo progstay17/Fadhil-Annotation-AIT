@@ -154,7 +154,7 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
     // 6. Auto Capital After .!? (if ON)
     if (autoCapital) {
       result = applyFormatWithProtection(result, (t) => {
-        return t.replace(/(^|[.!?]\s+|\n+\s*)([a-z])/g, (_, punct, char) =>
+        return t.replace(/(^|[.!?]\s+|[\r\n]+\s*)([a-z])/g, (_, punct, char) =>
           punct + char.toUpperCase()
         )
       })
@@ -167,7 +167,7 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
 
     // 3. Remove Line Break
     if (removeLineBreak) {
-      result = result.replace(/\n+/g, ' ')
+      result = result.replace(/[\r\n]+/g, ' ')
     }
 
     // 9. Auto Fix Space (ALWAYS LAST)
@@ -176,12 +176,12 @@ export function FilterCustom({ input, setInput, onClear }: FilterCustomProps) {
       if (isCursorAtEnd) {
         result = result
           .replace(/[ \t]{2,}/g, ' ')
-          .replace(/\n{3,}/g, '\n\n')
+          .replace(/(\r?\n){3,}/g, '\n\n')
           .trimStart()
       } else {
         result = result
           .replace(/[ \t]{2,}/g, ' ')
-          .replace(/\n{3,}/g, '\n\n')
+          .replace(/(\r?\n){3,}/g, '\n\n')
           .trim()
       }
     }

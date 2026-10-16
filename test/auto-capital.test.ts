@@ -125,7 +125,7 @@ function runEngine(text: string, options: RunEngineOptions = {}, mockEntities: K
   // 6. Auto Capital After .!? (if ON) - Exact code from components/filter-custom.tsx
   if (autoCapital) {
     result = applyFormatWithProtection(result, (t) => {
-      return t.replace(/(^|[.!?]\s+|\n+\s*)([a-z])/g, (_, punct, char) =>
+      return t.replace(/(^|[.!?]\s+|[\r\n]+\s*)([a-z])/g, (_, punct, char) =>
         punct + char.toUpperCase()
       )
     })
@@ -138,14 +138,14 @@ function runEngine(text: string, options: RunEngineOptions = {}, mockEntities: K
 
   // 3. Remove Line Break
   if (removeLineBreak) {
-    result = result.replace(/\n+/g, ' ')
+    result = result.replace(/[\r\n]+/g, ' ')
   }
 
   // 9. Auto Fix Space
   if (autoFixSpace) {
     result = result
       .replace(/[ \t]{2,}/g, ' ')
-      .replace(/\n{3,}/g, '\n\n')
+      .replace(/(\r?\n){3,}/g, '\n\n')
       .trim()
   }
 
@@ -199,6 +199,11 @@ function runAutoCapitalTests() {
   const input10 = "sprei putih kotor\naku ambil bantal"
   const res10 = runEngine(input10, { autoCapital: true, removeLineBreak: true }, [{ key: "sprei", canonical: "seprai" }])
   assertEqual(res10, "Seprai putih kotor Aku ambil bantal", "Test 10: Dictionary + autoCapital ON + removeLineBreak ON")
+
+  // 11. Multi-toggle CRLF line break test: removeLineBreak ON + autoCapital ON + autoLowercase ON + Dictionary
+  const input11 = "shopee adalah aplikasi\r\nini baris kedua\r\nini baris ketiga\r\nini baris keempat"
+  const res11 = runEngine(input11, { autoCapital: true, autoLowercase: true, removeLineBreak: true }, [{ key: "shopee", canonical: "Shopee" }])
+  assertEqual(res11, "Shopee adalah aplikasi Ini baris kedua Ini baris ketiga Ini baris keempat", "Test 11: CRLF multi-line paste + removeLineBreak ON + autoCapital ON + autoLowercase ON + Dictionary")
 
   console.log("All Auto Capital tests passed successfully!")
 }

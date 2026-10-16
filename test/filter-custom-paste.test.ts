@@ -36,7 +36,7 @@ function simulateFilterCustomEngine(text: string, autoCapital: boolean = true, a
   // 6. Auto Capital
   if (autoCapital) {
     result = applyFormatWithProtection(result, (t) => {
-      return t.replace(/(^|[.!?]\s+|\n+\s*)([a-z])/g, (_, punct, char) =>
+      return t.replace(/(^|[.!?]\s+|[\r\n]+\s*)([a-z])/g, (_, punct, char) =>
         punct + char.toUpperCase()
       )
     })
@@ -107,14 +107,14 @@ function runPasteTests() {
 
     if (autoCapital) {
       result = applyFormatWithProtection(result, (t) => {
-        return t.replace(/(^|[.!?]\s+|\n+\s*)([a-z])/g, (_, punct, char) =>
+        return t.replace(/(^|[.!?]\s+|[\r\n]+\s*)([a-z])/g, (_, punct, char) =>
           punct + char.toUpperCase()
         )
       })
     }
 
     if (removeLineBreak) {
-      result = result.replace(/\n+/g, ' ')
+      result = result.replace(/[\r\n]+/g, ' ')
     }
 
     result = restoreKnownEntities(result, entities)
