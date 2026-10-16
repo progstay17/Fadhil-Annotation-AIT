@@ -1,6 +1,21 @@
-# DingTag Annotation tool
+<div align="center">
 
-**Fast Text Processing for Annotation & QC**
+<img src="assets/ghifarion/repo-banner.svg" alt="DINGTAG ANNOTATION TOOL — Fast text processing for annotation & quality control." width="100%">
+
+</div>
+
+# DingTag Annotation Tool
+
+Fast text processing for annotation and quality control—with multi-mode cleanup, token editing, duplicate detection, and multilingual documentation.
+
+> **Ghifarion** · Engineering Intelligence. Building Legacy.
+
+## On this page
+
+- [Bahasa Indonesia](#-bahasa-indonesia)
+- [English](#-english)
+- [中文](#-chinese-mandarin)
+- [API](#api)
 
 ---
 
