@@ -7,8 +7,7 @@
 ## 🇮🇩 Bahasa Indonesia
 
 ### Preview
-![Preview](./preview.gif)
-*Screenshot/GIF wajib diisi*
+_Preview visual belum ditambahkan._
 
 ### Fitur
 - Pemrosesan multi-mode (V1, V2.2, Mode Biasa, Filter Custom)
@@ -36,8 +35,8 @@ Input → Pemilihan Mode → Proses → Output → Submit
 ### Memulai
 ```bash
 # Clone
-git clone https://github.com/USERNAME/REPO_NAME.git
-cd REPO_NAME
+git clone https://github.com/progstay17/Fadhil-Annotation-AIT.git
+cd Fadhil-Annotation-AIT
 
 # Install dependencies
 npm install
@@ -72,8 +71,7 @@ Lisensi MIT.
 ## 🇬🇧 English
 
 ### Preview
-![Preview](./preview.gif)
-*Screenshot/GIF required*
+_Visual preview has not been added yet._
 
 ### Features
 - Multi-mode processing (V1, V2.2, Normal Mode, Custom Filter)
@@ -101,8 +99,8 @@ Input → Mode Selection → Process → Output → Submit
 ### Getting Started
 ```bash
 # Clone
-git clone https://github.com/USERNAME/REPO_NAME.git
-cd REPO_NAME
+git clone https://github.com/progstay17/Fadhil-Annotation-AIT.git
+cd Fadhil-Annotation-AIT
 
 # Install dependencies
 npm install
@@ -137,8 +135,7 @@ MIT License.
 ## 🇨🇳 中文 (Mandarin)
 
 ### 预览
-![Preview](./preview.gif)
-*必须包含截图或 GIF*
+_尚未添加界面预览。_
 
 ### 特性
 - 多模式处理 (V1, V2.2, 普通模式, 自定义过滤器)
@@ -166,8 +163,8 @@ MIT License.
 ### 开始使用
 ```bash
 # 克隆
-git clone https://github.com/USERNAME/REPO_NAME.git
-cd REPO_NAME
+git clone https://github.com/progstay17/Fadhil-Annotation-AIT.git
+cd Fadhil-Annotation-AIT
 
 # 安装依赖
 npm install
