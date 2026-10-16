@@ -1,3 +1,9 @@
+<div align="center">
+
+<img src="assets/ghifarion/repo-banner.svg" alt="DINGTAG ANNOTATION TOOL — Fast text processing for annotation & quality control." width="100%">
+
+</div>
+
 # DingTag Annotation tool
 
 **Fast Text Processing for Annotation & QC**
